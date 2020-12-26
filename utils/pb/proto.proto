@@ -2,7 +2,7 @@
 syntax = "proto3";
 
 package pb;
-option go_package = "utils/pb";
+option go_package = "github.com/cbwfree/micro-game/utils/pb";
 
 // 无返回数据
 message None {}
