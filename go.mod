@@ -20,5 +20,5 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/steambap/captcha v1.3.1
 	go.mongodb.org/mongo-driver v1.4.4
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.23.0
 )
