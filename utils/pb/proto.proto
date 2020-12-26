@@ -1,0 +1,14 @@
+// 通用RPC服务
+syntax = "proto3";
+
+package pb;
+option go_package = "utils/pb";
+
+// 无返回数据
+message None {}
+
+// 停止服务
+message Cancel {
+  string Name = 1;                    // 服务名称
+  string NodeId = 2;                  // 服务节点ID
+}

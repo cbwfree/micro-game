@@ -1,0 +1,7 @@
+export PM2_HOME=$(pwd)/.pm2
+export GOPATH=$(pwd)/.go
+
+export GOROOT=/usr/local/go1.15
+export GOPROXY=https://goproxy.io,direct
+export PATH=$GOROOT/bin:$PATH
+export PATH=$GOPATH/bin:$PATH
