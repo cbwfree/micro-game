@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/gops/agent"
 	"github.com/micro/go-micro/v2/config/cmd"
+	"github.com/micro/go-micro/v2/transport"
 	"sync"
 
 	"github.com/micro/cli/v2"
@@ -15,6 +16,7 @@ import (
 
 	cgrpc "github.com/micro/go-micro/v2/client/grpc"
 	sgrpc "github.com/micro/go-micro/v2/server/grpc"
+	tgrpc "github.com/micro/go-micro/v2/transport/grpc"
 
 	"github.com/micro/go-micro/v2/broker/nats"
 	"github.com/micro/go-micro/v2/registry/etcd"
@@ -44,9 +46,10 @@ func APP() *app {
 // 当前服务
 type app struct {
 	sync.Mutex
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	srv       micro.Service
-	ctx       context.Context
-	cancel    context.CancelFunc
 	publisher map[string]micro.Publisher // 订阅
 }
 
@@ -66,11 +69,12 @@ func (a *app) newService(name string, version string, flags []cli.Flag) {
 			cmd.Description(fmt.Sprintf("a %s service", name)),
 			cmd.Version(version),
 		)),
+		micro.Client(cgrpc.NewClient()),
 		micro.Server(sgrpc.NewServer(
 			server.Name(name),
 			server.Version(version),
 		)),
-		micro.Client(cgrpc.NewClient()),
+		micro.Transport(tgrpc.NewTransport(transport.Secure(true))),
 		micro.Broker(nats.NewBroker()),     // nats
 		micro.Registry(etcd.NewRegistry()), // ectd
 		micro.BeforeStart(func() error {
