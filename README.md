@@ -39,6 +39,15 @@ Meta 主要是用来查找指定的服务节点的, 需要配合 `proto-gen-rpc`
 
 DbMeta 是 Meta 的拓展, 主要表示的是数据服务, 其中携带了标识该数据的 `Data-Id` 信息
 
+## 运行环境
+
+在 `app` 包中, 固定了 go-micro 的 `Broker`, `Registry` , `Server` , `Client` 类型. 
+
+在实际使用中对于热插拔的要求并不高. 同时为了减少运行时参数数量, 所以这里把这些类型都给固定了.
+
+- `Broker` 固定为 `nats` [http://nats.io/](http://nats.io/)
+- `Registry` 固定为 `etcd` [http://etcd.io/](http://etcd.io/)
+- `Server` 和 `Client` 均固定为 `grpc`
 
 ## proto-gen-rpc
 
