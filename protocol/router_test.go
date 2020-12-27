@@ -17,7 +17,7 @@ func (t *testHandle) Test_10001(ctx context.Context, c2s proto.Message, s2c prot
 
 func TestRouter_Call(t *testing.T) {
 	r := NewRouter()
-	r.Handler(new(testHandle))
+	r.AddRoute(new(testHandle))
 
 	if s2c, err := r.Call(agent.NewMeta(""), 10001, nil); err != nil {
 		fmt.Printf("Err: %s\n", err.Error())
@@ -28,7 +28,7 @@ func TestRouter_Call(t *testing.T) {
 
 func TestRouter_Handler(t *testing.T) {
 	r := NewRouter()
-	r.Handler(new(testHandle))
+	r.AddRoute(new(testHandle))
 
 	fmt.Printf("Routes: %+v\n", r.Routes())
 }
