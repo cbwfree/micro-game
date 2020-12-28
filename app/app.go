@@ -77,6 +77,8 @@ func (a *app) newService(name string, version string, flags []cli.Flag) {
 		micro.Transport(tgrpc.NewTransport(transport.Secure(true))),
 		micro.Broker(nats.NewBroker()),     // nats
 		micro.Registry(etcd.NewRegistry()), // ectd
+		micro.WrapHandler(serverWrapper),
+		micro.WrapSubscriber(subscriberWrapper),
 		micro.BeforeStart(func() error {
 			if Opts.PsAddr != "" {
 				if err := agent.Listen(agent.Options{Addr: Opts.PsAddr}); err != nil {

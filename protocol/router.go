@@ -2,8 +2,8 @@ package protocol
 
 import (
 	"github.com/cbwfree/micro-game/agent"
+	"github.com/cbwfree/micro-game/utils/errors"
 	"github.com/golang/protobuf/proto"
-	"github.com/micro/go-micro/v2/errors"
 )
 
 // 游戏协议路由
@@ -33,7 +33,7 @@ func (r *Router) AddRoute(handles ...interface{}) {
 func (r *Router) Call(gmt *agent.Meta, cmd uint32, req []byte) (rsp []byte, err error) {
 	route, ok := r.routes[cmd]
 	if !ok {
-		return nil, errors.NotFound("protocol", "not found protocol %d", cmd)
+		return nil, errors.NotFound("not found protocol %d", cmd)
 	}
 
 	c2s := route.NewReqValue().Interface()

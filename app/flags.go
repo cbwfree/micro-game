@@ -6,11 +6,18 @@ import (
 
 var (
 	Opts = new(struct {
+		Dev    bool   // 是否开发模式
 		PsAddr string // gops分析
 		Lang   string // 设置语言环境
 	})
 
 	defaultFlags = []cli.Flag{
+		&cli.BoolFlag{
+			Name:        "dev",
+			Usage:       "设置是否为开发模式",
+			EnvVars:     []string{"GAME_DEV"},
+			Destination: &Opts.Dev,
+		},
 		&cli.StringFlag{
 			Name:        "gops",
 			Usage:       "设置gops分析地址",

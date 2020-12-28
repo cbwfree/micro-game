@@ -36,28 +36,22 @@ var (
 	// Info color style
 	Info = &Theme{"info", Style{OpReset, FgCyan}}
 	// Warn color style
-	Warn = &Theme{"warn", Style{FgLightWhite, BgYellow}}
+	Warn = &Theme{"warn", Style{OpBold, FgYellow}}
 	// Error color style
-	Error = &Theme{"error", Style{FgLightWhite, BgRed}}
-	// Danger color style
-	Fatal = &Theme{"danger", Style{OpBold, FgRed}}
-
-	// Note color style
-	Note = &Theme{"note", Style{OpBold, FgLightCyan}}
-	// Notice color style
-	Notice = &Theme{"notice", Style{OpBold, FgCyan}}
-	// Comment color style
-	Comment = &Theme{"comment", Style{OpReset, FgLightYellow}}
+	Error = &Theme{"error", Style{OpBold, FgRed}}
+	// Question color style
+	Question = &Theme{"question", Style{OpBold, FgMagenta}}
 	// Success color style
 	Success = &Theme{"success", Style{OpBold, FgGreen}}
-	// Question color style
-	Question = &Theme{"question", Style{OpReset, FgMagenta}}
+	// Danger color style
+	Fatal = &Theme{"danger", Style{FgLightWhite, BgRed}}
+
 	// Primary color style
 	Primary = &Theme{"primary", Style{OpReset, FgLightBlue}}
 	// Secondary color style
-	Secondary = &Theme{"secondary", Style{OpReset, FgDarkGray}}
-	// Light color style
-	Light = &Theme{"light", Style{FgLightWhite, BgBlack}}
+	Comment = &Theme{"secondary", Style{OpReset, FgDarkGray}}
+	// Note color style
+	Note = &Theme{"note", Style{OpBold, FgLightCyan}}
 )
 
 // Themes internal defined themes.
@@ -71,14 +65,11 @@ var Themes = map[string]*Theme{
 	"error": Error,
 	"fatal": Fatal,
 
-	"note":      Note,
-	"notice":    Notice,
-	"success":   Success,
-	"comment":   Comment,
-	"primary":   Primary,
-	"question":  Question,
-	"secondary": Secondary,
-	"light":     Light,
+	"note":     Note,
+	"success":  Success,
+	"comment":  Comment,
+	"primary":  Primary,
+	"question": Question,
 }
 
 // AddTheme add a theme and style

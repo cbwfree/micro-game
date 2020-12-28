@@ -3,8 +3,8 @@ package meta
 import (
 	"context"
 	"github.com/cbwfree/micro-game/app"
+	"github.com/cbwfree/micro-game/utils/errors"
 	"github.com/micro/go-micro/v2/metadata"
-	"github.com/pkg/errors"
 	"strconv"
 )
 
@@ -121,7 +121,7 @@ func NewMeta(name, id string, meta metadata.Metadata) Meta {
 func FromMeta(ctx context.Context) (Meta, error) {
 	mt, b := metadata.FromContext(ctx)
 	if !b {
-		return nil, errors.New("no meta context")
+		return nil, errors.Invalid("no meta context")
 	}
 	return Meta(mt), nil
 }

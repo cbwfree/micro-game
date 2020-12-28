@@ -1,10 +1,13 @@
 package multi
 
 import (
-	"bytes"
+	"context"
+	"fmt"
 	"github.com/cbwfree/micro-game/utils/color"
 	"github.com/cbwfree/micro-game/utils/debug"
+	"github.com/cbwfree/micro-game/utils/errors"
 	"github.com/cbwfree/micro-game/utils/log"
+	"strings"
 	"sync"
 	"time"
 )
@@ -13,122 +16,128 @@ type TaskHandler func() error
 
 type Task struct {
 	sync.Mutex
-	wg     *sync.WaitGroup
+	skip   int
 	tasks  []TaskHandler
 	errors *sync.Map
-	level  int
 }
 
-func (mt *Task) Do(work ...TaskHandler) {
-	mt.tasks = append(mt.tasks, work...)
+func (t *Task) Do(work ...TaskHandler) {
+	t.Lock()
+	defer t.Unlock()
+
+	t.tasks = append(t.tasks, work...)
 }
 
 // 执行并发任务
-func (mt *Task) Run(timeout ...time.Duration) error {
-	mt.Lock()
-	defer mt.Unlock()
+func (t *Task) Run(second ...int64) error {
+	t.Lock()
+	defer t.Unlock()
 
-	var trace *bytes.Buffer
-	if log.IsTrace() {
-		trace = new(bytes.Buffer)
+	var timeout time.Duration
+	if len(second) > 0 {
+		timeout = time.Duration(second[0]) * time.Second
+	} else {
+		timeout = 5 * time.Second
 	}
+
+	var trace []string
+	var isTrace = log.IsTrace()
+
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
 
 	now := time.Now()
-	done := make(chan struct{})
-	taskNum := len(mt.tasks)
-
-	mt.errors = new(sync.Map)
-	mt.wg = new(sync.WaitGroup)
-
-	mt.wg.Add(taskNum)
-
-	for i, fn := range mt.tasks {
-		go func(i int, fn TaskHandler) {
-			defer mt.wg.Done()
-			st := time.Now()
-			err := fn()
-			mt.errors.Store(i, err)
-			if trace != nil {
-				diffTime := time.Since(st)
-				if err != nil {
-					trace.WriteString(color.Error.Text(" -> Run %d task time: %s, Error: %v\n", i, diffTime, err))
-				} else if diffTime > DefaultLongTime {
-					trace.WriteString(color.Secondary.Text(" -> Run %d task time: %s\n", i, diffTime))
-				}
-			}
-		}(i, fn)
-	}
+	ch := make(chan struct{}, 0)
 
 	go func() {
-		mt.wg.Wait()
-		done <- struct{}{}
-	}()
+		wg := new(sync.WaitGroup)
 
-	var afterTime time.Duration
-	if len(timeout) > 0 {
-		afterTime = timeout[0]
-	} else {
-		afterTime = DefaultTimeout
-	}
+		for i, fn := range t.tasks {
+			go func(i int, fn TaskHandler) {
+				wg.Add(1)
+				defer wg.Done()
+
+				st := time.Now()
+				err := fn()
+				t.errors.Store(i, err)
+
+				if isTrace {
+					if err != nil {
+						trace = append(trace, color.Error.Text("\t-> run %d task time: %s, error: %+v", i, time.Since(st), err))
+					} else {
+						trace = append(trace, color.Question.Text("\t-> run %d task time: %s", i, time.Since(st)))
+					}
+				}
+			}(i, fn)
+		}
+
+		wg.Wait()
+		ch <- struct{}{}
+	}()
 
 	var err error
 	select {
-	case <-done:
-		err = nil
-	case <-time.After(afterTime):
-		if log.IsTrace() {
-			for i := 0; i < len(mt.tasks); i++ {
-				_, ok := mt.errors.Load(i)
-				if !ok && trace != nil {
-					trace.WriteString(color.Warn.Text(" -> Warning: Run %d task timeout\n", i))
+	case <-ctx.Done():
+		err = errors.Timeout()
+		if isTrace {
+			for i := 0; i < len(t.tasks); i++ {
+				if _, ok := t.errors.Load(i); !ok {
+					trace = append(trace, color.Warn.Text("\t-> run %d task timeout", i))
 				}
 			}
 		}
-		err = ErrTimeout
+	case <-ch:
+		// Ok
 	}
 
-	if trace != nil {
-		caller := debug.GetCaller(mt.level)
-		log.Printf("%s\n", color.Primary.Text("[Task] %s:%d, Start %d Task, Total Time: %s ...", caller.File, caller.Line, taskNum, time.Since(now)))
-		if trace.Len() > 0 {
-			log.Printf("%s", trace)
+	if isTrace {
+		caller := debug.GetCaller(t.skip)
+		log.Trace("[Task] %s:%d, total started %d task, uptime: %s ...", caller.File, caller.Line, len(t.tasks), time.Since(now))
+		if len(trace) > 0 {
+			fmt.Printf("%s\n", strings.Join(trace, "\n"))
 		}
 	}
 
 	return err
 }
 
-// 获取任务执行结果
-func (mt *Task) Errors() []error {
-	var errs []error
-	for i := 0; i < len(mt.tasks); i++ {
-		if err, ok := mt.errors.Load(i); ok {
-			if err != nil {
-				errs = append(errs, err.(error))
-			} else {
-				errs = append(errs, nil)
-			}
-		} else {
-			errs = append(errs, ErrNotFound)
+// 获取全部任务错误
+func (t *Task) Errors() map[int]error {
+	var errs = make(map[int]error)
+	for i := 0; i < len(t.tasks); i++ {
+		res, _ := t.errors.Load(i)
+		if res != nil {
+			errs[i] = res.(error)
 		}
 	}
 	return errs
 }
 
+// 获取任务错误
+func (t *Task) GetError(i int) error {
+	res, _ := t.errors.Load(i)
+	if res != nil {
+		return res.(error)
+	}
+	return nil
+}
+
 // 实例化并发任务
 func NewTasks(task ...TaskHandler) *Task {
-	w := &Task{
-		level: 3,
+	t := &Task{
+		skip:   3,
+		errors: new(sync.Map),
 	}
-	w.Do(task...)
-	return w
+	t.Do(task...)
+	return t
 }
 
 // 执行并发任务
-func RunTasks(tasks []TaskHandler, timeout ...time.Duration) error {
-	w := &Task{
-		level: 4,
+func RunTasks(tasks []TaskHandler, timeout ...int64) error {
+	t := &Task{
+		skip:   4,
+		errors: new(sync.Map),
 	}
-	w.Do(tasks...)
-	return w.Run(timeout...)
+	t.Do(tasks...)
+	return t.Run(timeout...)
 }

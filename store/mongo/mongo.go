@@ -8,7 +8,7 @@ package mongo
 
 import (
 	"context"
-	"errors"
+	"github.com/cbwfree/micro-game/utils/errors"
 	"github.com/cbwfree/micro-game/utils/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -61,7 +61,7 @@ func (s *Store) Connect() error {
 		SetRetryReads(true).
 		ApplyURI(s.opts.RawUrl)
 	if opts.ReplicaSet == nil || *opts.ReplicaSet == "" {
-		return errors.New("this system only supports replica sets. example: mongodb://0.0.0.0:27017,0.0.0.0:27018,0.0.0.0:27019/?replicaSet=rs1")
+		return errors.Server("this system only supports replica sets. example: mongodb://0.0.0.0:27017,0.0.0.0:27018,0.0.0.0:27019/?replicaSet=rs1")
 	}
 
 	s.ctx, s.cancel = context.WithTimeout(context.Background(), 3*time.Second)

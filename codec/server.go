@@ -4,7 +4,7 @@ package codec
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/pkg/errors"
+	"github.com/cbwfree/micro-game/utils/errors"
 )
 
 // ServerHead 服务器消息头
@@ -64,7 +64,7 @@ func (c *Server) Marshal(head *ServerHead, data []byte) (b []byte, err error) {
 func (c *Server) Unmarshal(raw []byte) (head *ServerHead, data []byte, err error) {
 	var rawLen = len(raw)
 	if rawLen < c.headLen {
-		return nil, nil, errors.New("msg head length error")
+		return nil, nil, errors.Invalid("msg head length error")
 	}
 
 	// 校验head
@@ -75,7 +75,7 @@ func (c *Server) Unmarshal(raw []byte) (head *ServerHead, data []byte, err error
 
 		for i, head := range heads {
 			if c.mixHead[i] != head {
-				return nil, nil, errors.New("msg head check error")
+				return nil, nil, errors.Invalid("msg head check error")
 			}
 		}
 	}
@@ -89,7 +89,7 @@ func (c *Server) Unmarshal(raw []byte) (head *ServerHead, data []byte, err error
 	if rawLen > c.headLen {
 		var maxLen = int(head.DataLen) + c.headLen
 		if rawLen < maxLen {
-			return nil, nil, errors.New("msg data length error")
+			return nil, nil, errors.Invalid("msg data length error")
 		}
 		data = raw[c.headLen:maxLen]
 	}

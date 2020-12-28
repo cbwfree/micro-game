@@ -1,20 +1,23 @@
 package errors
 
-import (
-	"fmt"
-	"github.com/cbwfree/micro-game/app"
-)
+import "net/http"
 
 var (
-	Lang = map[string]*Status{
+	defaultLang = "zh-cn"
+	Lang        = map[string]*Status{
 		"en-us": NewStatus("en-us"),
 		"zh-cn": NewStatus("zh-cn"),
 	}
 )
 
+// 设置默认语言环境
+func SetDefaultLang(lang string) {
+	defaultLang = lang
+}
+
 // 获取默认语言环境
 func StatusText(code int32) string {
-	return Lang[app.Opts.Lang].Text(code)
+	return Lang[defaultLang].Text(code)
 }
 
 // 获取语言环境信息
@@ -22,7 +25,7 @@ func GetText(lang string, code int32) string {
 	if s, ok := Lang[lang]; ok {
 		return s.Text(code)
 	}
-	return fmt.Sprintf("not found %s lang", lang)
+	return "unknown language"
 }
 
 // 注册语言环境
@@ -58,7 +61,12 @@ func (s *Status) Text(code int32) string {
 	if text, ok := s.status[code]; ok {
 		return text
 	}
-	return fmt.Sprintf("Error Code: %d", code)
+
+	if text := http.StatusText(int(code)); text != "" {
+		return text
+	}
+
+	return "unknown"
 }
 
 func (s *Status) Status() map[int32]string {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/cbwfree/micro-game/codec"
 	"github.com/cbwfree/micro-game/utils/color"
-	"github.com/pkg/errors"
+	"github.com/cbwfree/micro-game/utils/errors"
 	"sync"
 )
 
@@ -190,7 +190,7 @@ func (g *Agent) Run() error {
 	defer g.Unlock()
 
 	if g.server != nil {
-		return errors.Errorf("agent server is set %s ...", g.server.Name())
+		return errors.Server("agent server is set %s ...", g.server.Name())
 	}
 
 	if Opts.Type == "ws" || Opts.Type == "wss" {
@@ -200,7 +200,7 @@ func (g *Agent) Run() error {
 	if s, ok := RegisterAgent[Opts.Type]; ok {
 		g.server = s(g)
 	} else {
-		return errors.Errorf("Unsupported agent server type: %s", Opts.Type)
+		return errors.Server("Unsupported agent server type: %s", Opts.Type)
 	}
 
 	return g.server.Run()

@@ -1,180 +1,167 @@
 package multi
 
 import (
-	"bytes"
+	"context"
+	"fmt"
 	"github.com/cbwfree/micro-game/utils/color"
 	"github.com/cbwfree/micro-game/utils/debug"
+	"github.com/cbwfree/micro-game/utils/errors"
 	"github.com/cbwfree/micro-game/utils/log"
+	"strings"
 	"sync"
 	"time"
 )
 
 type WorkHandler func() (interface{}, error)
 
-type WorkResult struct {
-	Data  interface{}
-	Error error
-}
-
 type Work struct {
 	sync.Mutex
-	wg     *sync.WaitGroup
-	result *sync.Map
+	skip   int
 	worker []WorkHandler
-	level  int
+	result *sync.Map
+	errors *sync.Map
 }
 
 func (w *Work) Do(work ...WorkHandler) {
+	w.Lock()
+	defer w.Unlock()
+
 	w.worker = append(w.worker, work...)
 }
 
 // 执行并发任务
-func (w *Work) Run(timeout ...time.Duration) error {
+func (w *Work) Run(second ...int64) error {
 	w.Lock()
 	defer w.Unlock()
 
-	var trace *bytes.Buffer
-	if log.IsTrace() {
-		trace = new(bytes.Buffer)
+	var timeout time.Duration
+	if len(second) > 0 {
+		timeout = time.Duration(second[0]) * time.Second
+	} else {
+		timeout = 5 * time.Second
 	}
+
+	var trace []string
+	var isTrace = log.IsTrace()
+
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
 
 	now := time.Now()
-	done := make(chan struct{})
-	workNum := len(w.worker)
-
-	w.result = new(sync.Map)
-	w.wg = new(sync.WaitGroup)
-
-	w.wg.Add(workNum)
-	for i, fn := range w.worker {
-		go func(i int, fn WorkHandler) {
-			defer w.wg.Done()
-			st := time.Now()
-			var res = new(WorkResult)
-			res.Data, res.Error = fn()
-			w.result.Store(i, res)
-			if trace != nil {
-				diffTime := time.Since(st)
-				if res.Error != nil {
-					trace.WriteString(color.Error.Text(" -> Run %d work time: %s, Error: %v\n", i, diffTime, res.Error))
-				} else if diffTime > DefaultLongTime {
-					trace.WriteString(color.Secondary.Text(" -> Run %d work time: %s\n", i, diffTime))
-				}
-			}
-		}(i, fn)
-	}
+	ch := make(chan struct{}, 0)
 
 	go func() {
-		w.wg.Wait()
-		done <- struct{}{}
-	}()
+		wg := new(sync.WaitGroup)
 
-	var afterTime time.Duration
-	if len(timeout) > 0 {
-		afterTime = timeout[0]
-	} else {
-		afterTime = DefaultTimeout
-	}
+		for i, fn := range w.worker {
+			go func(i int, handler WorkHandler) {
+				wg.Add(1)
+				defer wg.Done()
+
+				st := time.Now()
+				res, err := handler()
+
+				w.result.Store(i, res)
+				w.errors.Store(i, err)
+
+				if isTrace {
+					if err != nil {
+						trace = append(trace, color.Error.Text("\t-> run %d work uptime: %s, error: %v", i, time.Since(st), err))
+					} else {
+						trace = append(trace, color.Question.Text("\t-> run %d work uptime: %s", i, time.Since(st)))
+					}
+				}
+			}(i, fn)
+		}
+
+		wg.Wait()
+
+		ch <- struct{}{}
+	}()
 
 	var err error
 	select {
-	case <-done:
-		err = nil
-	case <-time.After(afterTime):
-		if log.IsTrace() {
+	case <-ctx.Done():
+		err = errors.Timeout()
+		if isTrace {
 			for i := 0; i < len(w.worker); i++ {
-				_, ok := w.result.Load(i)
-				if !ok && trace != nil {
-					trace.WriteString(color.Warn.Text(" -> Warning: Run %d work timeout\n", i))
+				if _, ok := w.result.Load(i); !ok {
+					trace = append(trace, color.Warn.Text("\t-> run %d work timeout", i))
 				}
 			}
 		}
-		err = ErrTimeout
+	case <-ch:
+		// Ok
 	}
 
-	if trace != nil {
-		caller := debug.GetCaller(w.level)
-		log.Printf("%s\n", color.Primary.Text("[Task] %s:%d, Start %d Task, Total Time: %s ...", caller.File, caller.Line, workNum, time.Since(now)))
-		if trace.Len() > 0 {
-			log.Printf("%s", trace)
+	if isTrace {
+		caller := debug.GetCaller(w.skip)
+		log.Trace("[Work] %s:%d, total started %d work, uptime: %s ...", caller.File, caller.Line, len(w.worker), time.Since(now))
+		if len(trace) > 0 {
+			fmt.Printf("%s\n", strings.Join(trace, "\n"))
 		}
 	}
 
 	return err
 }
 
-// 仅获取数据结果
-func (w *Work) Data() []interface{} {
-	var result []interface{}
+// 获取全部任务错误
+func (w *Work) Errors() map[int]error {
+	var errs = make(map[int]error)
 	for i := 0; i < len(w.worker); i++ {
-		if res, ok := w.result.Load(i); ok {
-			result = append(result, res.(*WorkResult).Data)
-		} else {
-			result = append(result, nil)
-		}
-	}
-	return result
-}
-
-// 仅获取错误
-func (w *Work) Errors() []error {
-	var errs []error
-	for i := 0; i < len(w.worker); i++ {
-		if res, ok := w.result.Load(i); ok {
-			errs = append(errs, res.(*WorkResult).Error)
-		} else {
-			errs = append(errs, ErrNotFound)
+		res, _ := w.errors.Load(i)
+		if res != nil {
+			errs[i] = res.(error)
 		}
 	}
 	return errs
 }
 
 // 获取任务执行结果
-func (w *Work) Result() []*WorkResult {
-	var result []*WorkResult
+func (w *Work) Result() []interface{} {
+	var result []interface{}
 	for i := 0; i < len(w.worker); i++ {
-		if res, ok := w.result.Load(i); ok {
-			result = append(result, res.(*WorkResult))
-		} else {
-			result = append(result, &WorkResult{
-				Error: ErrNotFound,
-			})
-		}
+		res, _ := w.result.Load(i)
+		result = append(result, res)
 	}
 	return result
 }
 
-// 执行并获取数据
-func (w *Work) RunAndData(timeout ...time.Duration) ([]interface{}, error) {
-	w.level = 4
-	if err := w.Run(timeout...); err != nil {
-		return nil, err
+// 获取任务错误
+func (w *Work) GetError(i int) error {
+	res, _ := w.errors.Load(i)
+	if res != nil {
+		return res.(error)
 	}
-	return w.Data(), nil
+	return nil
 }
 
-// 执行并获取结果
-func (w *Work) RunAndResult(timeout ...time.Duration) ([]*WorkResult, error) {
-	w.level = 4
-	if err := w.Run(timeout...); err != nil {
-		return nil, err
+// 获取任务错误
+func (w *Work) GetResult(i int) interface{} {
+	res, ok := w.errors.Load(i)
+	if !ok {
+		return nil
 	}
-	return w.Result(), nil
+	return res
 }
 
 // 实例化并发任务
 func NewWorks(work ...WorkHandler) *Work {
 	w := &Work{
-		level: 3,
+		skip:   3,
+		result: new(sync.Map),
+		errors: new(sync.Map),
 	}
 	w.Do(work...)
 	return w
 }
 
 // 执行并发任务
-func RunWorks(works []WorkHandler, timeout ...time.Duration) ([]*WorkResult, error) {
+func RunWorks(works []WorkHandler, timeout ...int64) ([]interface{}, error) {
 	w := &Work{
-		level: 4,
+		skip:   4,
+		result: new(sync.Map),
+		errors: new(sync.Map),
 	}
 	w.Do(works...)
 	if err := w.Run(timeout...); err != nil {

@@ -3,7 +3,7 @@ package protocol
 import (
 	"fmt"
 	"github.com/cbwfree/micro-game/agent"
-	"github.com/pkg/errors"
+	"github.com/cbwfree/micro-game/utils/errors"
 	"reflect"
 	"strconv"
 	"strings"
@@ -89,12 +89,12 @@ func ParseRoutes(handler interface{}) []*Route {
 func parseProtocolCmd(name string) (uint32, error) {
 	names := strings.Split(name, "_")
 	if len(names) != 2 {
-		return 0, errors.Errorf("%s.%s format error", name, name)
+		return 0, errors.Invalid("%s.%s format error", name, name)
 	}
 
 	cmd, err := strconv.ParseUint(names[1], 10, 32)
 	if err != nil {
-		return 0, errors.Errorf("%s.%s invalid command: %s", name, name, names[1])
+		return 0, errors.Invalid("%s.%s invalid command: %s", name, name, names[1])
 	}
 
 	return uint32(cmd), nil

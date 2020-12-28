@@ -2,9 +2,9 @@ package web
 
 import (
 	"fmt"
+	"github.com/cbwfree/micro-game/utils/errors"
 	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
-	merr "github.com/micro/go-micro/v2/errors"
 	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"time"
@@ -73,7 +73,7 @@ func ParseError(err error) *Result {
 				msg = he.Error()
 			}
 		}
-	} else if ee := merr.Parse(err.Error()); ee.Code > 0 { // Micro RPC 返回的错误
+	} else if ee := errors.Parse(err); ee.Code > 0 { // Micro RPC 返回的错误
 		code = int(ee.Code)
 		msg = ee.Detail
 	} else {

@@ -44,7 +44,7 @@ var Styles = map[string]Style{
 	"info":  {OpReset, FgGreen},
 	"note":  {OpBold, FgLightCyan},
 	"light": {FgLightWhite, BgRed},
-	"error": {FgLightWhite, BgRed},
+	"error": {OpBold, FgRed},
 
 	"danger":  {OpBold, FgRed},
 	"notice":  {OpBold, FgCyan},

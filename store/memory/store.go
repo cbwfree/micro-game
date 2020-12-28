@@ -1,15 +1,10 @@
 package memory
 
 import (
-	"errors"
 	"github.com/cbwfree/micro-game/utils/dtype"
+	"github.com/cbwfree/micro-game/utils/errors"
 	"sync"
 	"time"
-)
-
-var (
-	// ErrNotFound is returned when a Read key doesn't exist
-	ErrNotFound = errors.New("not found")
 )
 
 // 内存数据存储
@@ -42,11 +37,11 @@ func (ms *Store) Read(keys ...string) ([]*Record, error) {
 	for _, key := range keys {
 		v, ok := ms.values[key]
 		if !ok {
-			return nil, ErrNotFound
+			return nil, errors.NotFound()
 		}
 
 		if !v.CheckState() {
-			return nil, ErrNotFound
+			return nil, errors.NotFound()
 		}
 
 		records = append(records, v)
@@ -83,7 +78,7 @@ func (ms *Store) Get(key string) (interface{}, error) {
 
 	v, ok := ms.values[key]
 	if !ok {
-		return nil, ErrNotFound
+		return nil, errors.NotFound()
 	}
 
 	return v.Value(), nil
