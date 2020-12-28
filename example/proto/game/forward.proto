@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package game;
+option go_package = "github.com/cbwfree/micro-game/example/proto/game";
+
+// 网关消息转发
+service Forward {
+    rpc Protocol(InForwardProtocol) returns (OutForwardProtocol);                   // 转发协议
+    rpc Offline(InForwardOffline) returns (OutForwardOffline);                      // 离线通知
+}
+
+// 转发协议
+message InForwardProtocol {
+    uint32 Cmd = 1;
+    bytes Data = 2;
+}
+message OutForwardProtocol {
+    uint32 Code = 1;
+    bytes Data = 2;
+}
+
+// 离线通知
+message InForwardOffline {}
+message OutForwardOffline {}

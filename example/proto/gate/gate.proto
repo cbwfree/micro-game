@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package gate;
+option go_package = "github.com/cbwfree/micro-game/example/proto/gate";
+
+service GateService {
+  rpc Push(InGatePush) returns (OutGatePush);   // 推送消息
+}
+
+// 推送消息
+message InGatePush {
+  string ClientId = 1;
+  uint32 Cmd = 2;
+  uint32 Code = 3;
+  bytes Data = 4;
+}
+message OutGatePush {}

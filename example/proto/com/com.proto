@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+package com;
+option go_package = "github.com/cbwfree/micro-game/example/proto/com";
+
+message None {}

@@ -17,3 +17,5 @@
 /.go
 /.idea/
 /vendor/
+/example/vendor/
+/proto-gen-rpc/vendor/

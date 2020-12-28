@@ -51,7 +51,7 @@ DbMeta 是 Meta 的拓展, 主要表示的是数据服务, 其中携带了标识
 
 ## proto-gen-rpc
 
-[proto-gen-rpc](https://github.com/cbwfree/proto-gen-rpc) 是用来生成自定义的 RPC 代码的
+[proto-gen-rpc](https://github.com/cbwfree/micro-game/tree/main/proto-gen-rpc) 是用来生成自定义的 RPC 代码的
 
 使用时, 需要把 `proto-gen-rpc` 文件放置在 `$GOROOT/bin` 或 `$GOPATH/bin` 目录下, 同时在 `protoc` 命令后增加参数:
 
@@ -144,6 +144,6 @@ func NewForwardClient(name string) *ForwardClient {
 
 ```
 
-## 示例项目
+## 示例代码
 
-[https://github.com/cbwfree/micro-game-example](https://github.com/cbwfree/micro-game-example)
+[example](https://github.com/cbwfree/micro-game/tree/main/example)

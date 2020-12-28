@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package msg;
+option go_package = "github.com/cbwfree/micro-game/example/proto/msg";
+
+// 登录认证
+message C2S_10001 {
+  string Token = 1;
+}
+message S2C_10001 {}
+
+// 选择角色
+message C2S_10002 {}
+message S2C_10002 {}
+
+// 创建角色
+message C2S_10003 {}
+message S2C_10003 {}
+
+// 无响应数据
+message C2S_10004 {}
