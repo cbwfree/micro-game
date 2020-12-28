@@ -137,11 +137,6 @@ func (c *Client) Destroy() {
 
 // 关闭操作
 func (c *Client) doDestroy() {
-	if c.heartbeat != nil {
-		c.heartbeat.Stop()
-		c.heartbeat = nil
-	}
-
 	_ = c.conn.UnderlyingConn().(*net.TCPConn).SetLinger(0)
 	_ = c.conn.Close()
 
@@ -173,7 +168,7 @@ func NewClient(server agent.Server, conn *websocket.Conn, ip string) agent.Clien
 
 	// 心跳处理
 	go func() {
-		c.conn.SetPongHandler(func(appData string) error {
+		c.conn.SetPongHandler(func(_ string) error {
 			c.log.Debugf("[Heartbeat] PONG ...")
 			return nil
 		})
@@ -181,7 +176,6 @@ func NewClient(server agent.Server, conn *websocket.Conn, ip string) agent.Clien
 		for range c.heartbeat.C {
 			deadline := time.Now().Add(c.server.Opts().HeartbeatDeadline)
 			if err := conn.WriteControl(websocket.PingMessage, []byte("ping"), deadline); err != nil {
-				c.log.Error(color.Error.Text("[Heartbeat] Ping Error: %+v", err))
 				break
 			}
 		}
@@ -191,6 +185,13 @@ func NewClient(server agent.Server, conn *websocket.Conn, ip string) agent.Clien
 
 	// 异步处理推送消息
 	go func() {
+		defer func() {
+			if c.heartbeat != nil {
+				c.heartbeat.Stop()
+				c.heartbeat = nil
+			}
+		}()
+
 		for b := range c.writeChan {
 			if b == nil {
 				break
