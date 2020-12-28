@@ -74,7 +74,7 @@ import (
 type Service struct {}
 
 func (*Service) Call(ctx context.Context, _ *empty.Empty, _ *empty.Empty) error {
-	log.Debug("rpc request ...")
+	log.Info("rpc request success ...")
 	return nil
 }
 
@@ -118,7 +118,9 @@ func beforeStart() error {
 
 func afterStart() error {
 	// 发起RPC请求
-	app.CallCtx(context.TODO(), "ServiceName", "Service.Call", &empty.Empty{}, &empty.Empty{})
+	//if err := app.CallCtx(context.TODO(), "ServiceName", "Service.Call", &empty.Empty{}, &empty.Empty{}); err != nil {
+	//	log.Error("Call Error: %s", err)
+	//}
 	return nil
 }
 
