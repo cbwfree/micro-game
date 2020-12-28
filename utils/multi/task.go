@@ -53,8 +53,8 @@ func (t *Task) Run(second ...int64) error {
 		wg := new(sync.WaitGroup)
 
 		for i, fn := range t.tasks {
+			wg.Add(1)
 			go func(i int, fn TaskHandler) {
-				wg.Add(1)
 				defer wg.Done()
 
 				st := time.Now()

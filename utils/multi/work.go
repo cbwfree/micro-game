@@ -54,8 +54,8 @@ func (w *Work) Run(second ...int64) error {
 		wg := new(sync.WaitGroup)
 
 		for i, fn := range w.worker {
+			wg.Add(1)
 			go func(i int, handler WorkHandler) {
-				wg.Add(1)
 				defer wg.Done()
 
 				st := time.Now()
