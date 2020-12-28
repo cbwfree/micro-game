@@ -49,6 +49,96 @@ DbMeta 是 Meta 的拓展, 主要表示的是数据服务, 其中携带了标识
 - `Registry` 固定为 `etcd` [http://etcd.io/](http://etcd.io/)
 - `Server` 和 `Client` 均固定为 `grpc`
 
+## 安装
+
+```shell
+go get github.com/cbwfree/micro-game
+```
+
+## 创建服务
+
+```golang
+package main
+
+import (
+	"context"
+	"github.com/cbwfree/micro-game/app"
+	"github.com/cbwfree/micro-game/example/libs/def"
+	mgo "github.com/cbwfree/micro-game/store/mongo"
+	rds "github.com/cbwfree/micro-game/store/redis"
+	"github.com/cbwfree/micro-game/utils/log"
+	"github.com/golang/protobuf/ptypes/empty"
+	"github.com/micro/go-micro/v2"
+)
+
+type Service struct {}
+
+func (*Service) Call(ctx context.Context, _ *empty.Empty, _ *empty.Empty) error {
+	log.Debug("rpc request ...")
+	return nil
+}
+
+func main() {
+	// 初始化服务
+    app.New("ServiceName", "latest", mgo.Flags, rds.Flags)
+    
+    // 初始化
+    app.Init(
+        micro.BeforeStart(beforeStart),
+        micro.AfterStart(afterStart),
+        micro.BeforeStop(beforeStop),
+        micro.AfterStop(afterStop),
+    )
+    
+    // 注册RPC服务
+    app.AddHandler()
+    
+    // 启动服务
+    if err := app.Run(); err != nil {
+        log.Fatal("%+v", err)
+    }
+}
+
+
+// beforeStart 启动之前执行
+func beforeStart() error {
+	// 连接Redis
+	if err := rds.Connect(); err != nil {
+		return err
+	}
+	// 连接MongoDB
+	if err := mgo.Connect(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func afterStart() error {
+	// 发起RPC请求
+	app.CallCtx(context.TODO(), "ServiceName", "Service.Call", &empty.Empty{}, &empty.Empty{})
+	return nil
+}
+
+func beforeStop() error {
+	return nil
+}
+
+func afterStop() error {
+	// 关闭Redis
+	if err := rds.Disconnect(); err != nil {
+		log.Error("关闭Redis连接出错: %s", err.Error())
+	}
+
+	// 关闭MongoDB连接
+	if err := mgo.Disconnect(); err != nil {
+		log.Error("关闭MongoDB连接出错: %s", err.Error())
+	}
+
+	return nil
+}
+```
+
 ## proto-gen-rpc
 
 [proto-gen-rpc](https://github.com/cbwfree/micro-game/tree/main/proto-gen-rpc) 是用来生成自定义的 RPC 代码的
