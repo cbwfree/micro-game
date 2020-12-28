@@ -91,7 +91,9 @@ func main() {
     )
     
     // 注册RPC服务
-    app.AddHandler()
+    app.AddHandler(
+    	new(Service),
+    )
     
     // 启动服务
     if err := app.Run(); err != nil {
