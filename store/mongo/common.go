@@ -11,37 +11,17 @@ import (
 
 // SelectOne 通过反射查询单条记录
 func SelectOne(col *mongo.Collection, filter interface{}, model reflect.Type, options ...*options.FindOneOptions) (interface{}, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultReadWriteTimeout)
-	defer cancel()
-
-	if filter == nil {
-		filter = bson.M{}
-	}
-
-	var one = dtype.Elem(model).Addr().Interface()
-	if err := col.FindOne(ctx, filter, options...).Decode(one); err != nil {
+	var res = dtype.Elem(model).Addr().Interface()
+	if err := FindOne(col, filter, res, options...); err != nil {
 		return nil, err
 	}
-
-	return one, nil
+	return res, nil
 }
 
 // SelectAll 通过反射查询多条记录
 func SelectAll(col *mongo.Collection, filter interface{}, model reflect.Type, options ...*options.FindOptions) ([]interface{}, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultReadWriteTimeout)
-	defer cancel()
-
-	if filter == nil {
-		filter = bson.M{}
-	}
-
-	var cur, err = col.Find(ctx, filter, options...)
-	if err != nil {
-		return nil, err
-	}
-
-	var rows = dtype.SliceElem(model)
-	if err := cur.All(context.Background(), rows.Addr().Interface()); err != nil {
+	rows := dtype.SliceElem(model)
+	if err := FindAll(col, filter, rows.Addr().Interface(), options...); err != nil {
 		return nil, err
 	}
 
@@ -80,11 +60,13 @@ func FindAll(col *mongo.Collection, filter interface{}, result interface{}, opti
 		filter = bson.M{}
 	}
 
-	if cur, err := col.Find(ctx, filter, options...); err == nil {
-		if err := cur.All(context.Background(), result); err != nil {
-			return err
-		}
-	} else if err != mongo.ErrNilDocument {
+	cur, err := col.Find(ctx, filter, options...)
+	if err != nil {
+		return err
+	}
+	defer cur.Close(ctx)
+
+	if err := cur.All(context.Background(), result); err != nil {
 		return err
 	}
 
@@ -116,6 +98,7 @@ func FindScan(ctx context.Context, col *mongo.Collection, page, size int64, filt
 		if err != nil {
 			return scan
 		}
+		defer cur.Close(ctx)
 
 		if err := cur.All(ctx, result); err != nil {
 			return scan
