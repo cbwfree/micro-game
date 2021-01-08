@@ -10,14 +10,14 @@ import (
 )
 
 const (
-	MetaNodeId   = "Node-Id"
-	MetaNodeName = "Node-Name"
+	KeyNodeId   = "Node-Id"
+	KeyNodeName = "Node-Name"
 )
 
 // 普通节点
 type NodeMeta interface {
-	Id() string   // 节点ID
-	Name() string // 节点名称
+	NodeId() string   // 节点ID
+	NodeName() string // 节点名称
 	Context() context.Context
 }
 
@@ -35,19 +35,19 @@ func (m *Meta) Len() int {
 }
 
 func (m *Meta) Id() string {
-	return m.Get(MetaNodeId)
+	return m.Get(KeyNodeId)
 }
 
 func (m *Meta) SetId(id string) {
-	m.Set(MetaNodeId, id)
+	m.Set(KeyNodeId, id)
 }
 
 func (m *Meta) Name() string {
-	return m.Get(MetaNodeName)
+	return m.Get(KeyNodeName)
 }
 
 func (m *Meta) SetName(name string) {
-	m.Set(MetaNodeName, name)
+	m.Set(KeyNodeName, name)
 }
 
 func (m *Meta) Metadata() metadata.Metadata {
@@ -138,8 +138,8 @@ func (m *Meta) Float64(key string) float64 {
 func NewMeta(name, id string, meta metadata.Metadata) *Meta {
 	mt := &Meta{
 		data: metadata.Metadata{
-			MetaNodeName: name,
-			MetaNodeId:   id,
+			KeyNodeName: name,
+			KeyNodeId:   id,
 		},
 	}
 	for k, v := range meta {
@@ -169,13 +169,13 @@ func NewContext(values map[string]string) context.Context {
 
 // IsSelf 检查是否自身节点
 func IsSelf(mt NodeMeta) bool {
-	return mt.Name() == app.Name() && mt.Id() == app.Id()
+	return mt.NodeName() == app.Name() && mt.NodeId() == app.Id()
 }
 
 // IsValid 检查节点是否有效
 func IsValid(mt NodeMeta) bool {
-	if mt.Id() == "" {
+	if mt.NodeId() == "" {
 		return false
 	}
-	return app.CheckServiceNode(mt.Name(), mt.Id())
+	return app.CheckServiceNode(mt.NodeName(), mt.NodeId())
 }
