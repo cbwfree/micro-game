@@ -19,7 +19,7 @@ const (
 
 // 网关上下文
 type Meta struct {
-	meta.Meta
+	*meta.Meta
 }
 
 func (ctx *Meta) ClientId() string {

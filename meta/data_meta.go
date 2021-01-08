@@ -6,39 +6,39 @@ import (
 )
 
 const (
-	KeyDataId = "Data-Id"
+	MetaDataId = "Data-Id"
 )
 
 // 数据节点
 type DataNodeMeta interface {
-	NodeId() string   // 节点ID
-	NodeName() string // 节点名称
-	DataId() string   // 数据ID
+	Id() string     // 节点ID
+	Name() string   // 节点名称
+	DataId() string // 数据ID
 	Context() context.Context
 }
 
 // 数据节点
 type DataMeta struct {
-	Meta
+	*Meta
 }
 
 func (m *DataMeta) IsValid() bool {
-	return len(m.Meta) > 0 && m.Get(KeyDataId) != ""
+	return m.Len() > 0 && m.Get(MetaDataId) != ""
 }
 
 func (m *DataMeta) DataId() string {
-	return m.Get(KeyDataId)
+	return m.Get(MetaDataId)
 }
 
 func (m *DataMeta) SetDataId(id interface{}) {
-	m.Set(KeyDataId, ToMetaValue(id))
+	m.Set(MetaDataId, ToMetaValue(id))
 }
 
 // 实例化数据节点
 func NewDataMeta(name, id string, dataId interface{}) *DataMeta {
 	mt := &DataMeta{
 		Meta: NewMeta(name, id, metadata.Metadata{
-			KeyDataId: ToMetaValue(dataId),
+			MetaDataId: ToMetaValue(dataId),
 		}),
 	}
 	return mt
@@ -53,5 +53,8 @@ func FromDataMeta(ctx context.Context) (*DataMeta, error) {
 }
 
 func ToDataMeta(values map[string]string) *DataMeta {
-	return &DataMeta{Meta: Meta(values)}
+	if values == nil {
+		values = make(map[string]string)
+	}
+	return &DataMeta{Meta: ToMeta(values)}
 }
