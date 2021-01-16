@@ -48,6 +48,9 @@ func (c *Client) Log() *logger.Helper {
 
 // 判断是否关闭
 func (c *Client) Closed() bool {
+	c.RLock()
+	defer c.RUnlock()
+
 	return c.closed
 }
 
