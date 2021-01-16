@@ -59,12 +59,12 @@ func (s *Server) Start() error {
 	return nil
 }
 
-func (s *Server) Stop() error {
+func (s *Server) Stop() {
 	s.Lock()
 	defer s.Unlock()
 
 	if !s.running {
-		return nil
+		return
 	}
 
 	ch := make(chan error, 1)
@@ -72,8 +72,6 @@ func (s *Server) Stop() error {
 	s.running = false
 
 	log.Info("[%s] Web Server Close ... ", s.name)
-
-	return <-ch
 }
 
 func NewServer(name string, validator ...echo.Validator) *Server {
