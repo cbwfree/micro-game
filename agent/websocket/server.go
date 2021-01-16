@@ -20,7 +20,6 @@ func init() {
 
 type Server struct {
 	sync.Mutex
-	wg       *sync.WaitGroup
 	agent    *agent.Agent
 	listener net.Listener
 	upgrader *websocket.Upgrader
@@ -68,9 +67,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Warn("too many connections")
 		return
 	}
-
-	s.wg.Add(1)
-	defer s.wg.Done()
 
 	// 启动客户端
 	s.agent.StartClient(NewClient(s, conn, tool.GetHttpRealIP(r)))
@@ -128,14 +124,11 @@ func (s *Server) Close() {
 	s.exit <- ch
 	s.running = false
 
-	s.wg.Wait()
-
 	log.Info("[WebSocket] Server is stopping.")
 }
 
 func NewServer(agent *agent.Agent) agent.Server {
 	s := &Server{
-		wg:    new(sync.WaitGroup),
 		agent: agent,
 	}
 	return s

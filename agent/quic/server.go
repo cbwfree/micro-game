@@ -18,7 +18,6 @@ func init() {
 
 type Server struct {
 	sync.Mutex
-	wg       *sync.WaitGroup
 	agent    *agent.Agent
 	listener quic.Listener
 	running  bool
@@ -84,12 +83,7 @@ func (s *Server) start() {
 			continue
 		}
 
-		go func() {
-			s.wg.Add(1)
-			defer s.wg.Done()
-
-			s.agent.StartClient(NewClient(s, stream, session.RemoteAddr().(*net.UDPAddr).IP.String()))
-		}()
+		go s.agent.StartClient(NewClient(s, stream, session.RemoteAddr().(*net.UDPAddr).IP.String()))
 	}
 }
 
@@ -144,14 +138,11 @@ func (s *Server) Close() {
 	s.exit <- ch
 	s.running = false
 
-	s.wg.Wait()
-
 	log.Info("[QUIC] Server is stopping.")
 }
 
 func NewServer(agent *agent.Agent) agent.Server {
 	s := &Server{
-		wg:    new(sync.WaitGroup),
 		agent: agent,
 	}
 	return s

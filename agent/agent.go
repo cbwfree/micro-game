@@ -14,6 +14,7 @@ var (
 
 type Agent struct {
 	sync.RWMutex
+	wg          *sync.WaitGroup
 	opts        *Options
 	server      Server
 	clientCodec *codec.Client
@@ -54,6 +55,9 @@ func (g *Agent) SetOnDisconnect(fn func(Client)) {
 }
 
 func (g *Agent) StartClient(client Client) {
+	g.wg.Add(1)
+	defer g.wg.Done()
+
 	g.Lock()
 	g.clients[client.Id()] = client
 	g.Unlock()
@@ -87,8 +91,6 @@ func (g *Agent) StartClient(client Client) {
 		}
 	}
 
-	client.Log().Debug("disconnected ...")
-
 	client.Close()
 
 	g.Lock()
@@ -96,6 +98,8 @@ func (g *Agent) StartClient(client Client) {
 	g.Unlock()
 
 	g.OnDisconnect(client) // 连接断开处理
+
+	client.Log().Debug("disconnected ...")
 }
 
 // 获取客户端连接对象
@@ -178,8 +182,7 @@ func (g *Agent) Broadcast(msg []byte, filter func(client Client) bool) {
 		}
 
 		if filter == nil || filter(client) {
-			client := client
-			go client.Write(msg)
+			client.Write(msg)
 		}
 	}
 }
@@ -208,25 +211,23 @@ func (g *Agent) Run() error {
 
 // 关闭网关服务
 func (g *Agent) Close() {
+	if g.server != nil {
+		g.server.Close()
+	}
+
 	g.Lock()
-	defer g.Unlock()
-
-	if g.server == nil {
-		return
-	}
-
-	g.server.Close()
-
 	for _, client := range g.clients {
-		g.OnDisconnect(client)
-		client.Destroy()
-		delete(g.clients, client.Id())
+		client.Close()
 	}
+	g.Unlock()
+
+	g.wg.Wait()
 }
 
 // NewAgent
 func NewAgent(codecMix []uint8, opts ...Option) *Agent {
 	g := &Agent{
+		wg:          new(sync.WaitGroup),
 		opts:        NewOptions(opts...),
 		clientCodec: codec.NewClient(codecMix...),
 		serverCodec: codec.NewServer(codecMix...),
